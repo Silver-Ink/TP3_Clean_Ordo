@@ -361,3 +361,10 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+
+#ban
+TP3_Clean.sln
+TP3_Clean.vcxproj
+TP3_Clean.vcxproj.filters
+TP3_Clean.vcxproj.user
