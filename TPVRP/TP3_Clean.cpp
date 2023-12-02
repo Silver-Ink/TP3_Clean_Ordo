@@ -3,27 +3,33 @@
 #include <string>
 #include <cstdlib>
 
+#pragma region Definition
 #define repeat(_varName, _nbTime) for(int _varName = 0, nb_time = (int)(_nbTime); _varName < nb_time; _varName++)
 #define unused(x) (void)(x)
 
 #pragma warning(push)
 // Faux positif 
 #pragma warning(disable:6385)
-// Faux positif sur la lecture hors tableau � cause de la nature du programme avec plein de tableaux dont les indices sont lu depuis d'autre tableaux
+// Faux positif sur la lecture hors tableau é cause de la nature du programme avec plein de tableaux dont les indices sont lu depuis d'autre tableaux
 #pragma warning(disable:6386)
 // La taille de certaine structure est trop grande, mais on ne veut pas d'allocations dynamique
 #pragma warning(disable:6262)
 
+
 using namespace std;
+#pragma endregion
+
+#pragma region Structures
 
 const int nMaxClient = 180;
 
 typedef struct probleme
 {
+	// Nom du probleme
 	string nom;
-	// Indice de ville du d�pot (souvent 0)
+	// Indice de ville du dépot (souvent 0)
 	int depot;
-	// Nombre de ville, d�pot compris
+	// Nombre de ville, dépot compris
 	int nb_ville;
 	int dist[nMaxClient][nMaxClient];
 	int qte[nMaxClient];
@@ -35,11 +41,12 @@ typedef struct solution
 	int itineraire[nMaxClient + 2];
 	union
 	{
-		// 2 noms différent pour la même variables
+		// 2 noms différents pour la même variables
 		int cout;
 		int metres;
 	};
 } solution;
+#pragma endregion
 
 #pragma region Aleatoire
 int rand_uni(int min, int max)
@@ -162,7 +169,7 @@ void plus_proche_voisin_randomised(probleme& p, solution& s)
 		}
 
 		int j = 0;
-		while (j < nb_ville_proche - 1 && rand() % 10 >= 8)
+		while (j < nb_ville_proche - 1 && rand() % 101 > 80)
 		{
 			j++;
 		}
@@ -251,11 +258,12 @@ void afficher_itineraire(probleme& p, solution& s)
 
 
 
-void appliquer_2OPT(probleme& p, solution& s)
+bool appliquer_2OPT(probleme& p, solution& s)
 {
 	int delta;
 	int i;
 	int j;
+	bool trouver_meilleur = false;
 
 	for (i = 1; i < p.nb_ville; i++)
 	{
@@ -267,6 +275,7 @@ void appliquer_2OPT(probleme& p, solution& s)
 					- p.dist[ s.itineraire[j]   ][ s.itineraire[j+1] ] ;
 			if (delta < 0)
 			{
+				trouver_meilleur = true;
 				while (i < j)
 				{
 					int tmp = s.itineraire[i];
@@ -277,14 +286,15 @@ void appliquer_2OPT(probleme& p, solution& s)
 			}
 		}
 	}
+	return trouver_meilleur;
 }
 
 
 /// <summary>
-/// D�cale les �l�ments de l'itin�raire vers la droite en ramenant le dernier indice au d�but.
+/// Décale les éléments de l'itinéraire vers la droite en ramenant le dernier indice au début.
 /// Bornes dep et fin non incluses
 /// </summary>
-/// <param name="s">solution contenant l'itin�raire</param>
+/// <param name="s">solution contenant l'itinéraire</param>
 /// <param name="dep">fin < dep</param>
 /// <param name="fin">fin < dep</param>
 void decal_gauche(solution& s, int dep, int fin)
@@ -300,10 +310,10 @@ void decal_gauche(solution& s, int dep, int fin)
 }
 
 /// <summary>
-/// D�cale les �l�ments de l'itin�raire vers la gauche en ramenant le dernier indice au d�but.
+/// Décale les éléments de l'itinéraire vers la gauche en ramenant le dernier indice au début.
 /// Bornes dep et fin non incluses
 /// </summary>
-/// <param name="s">solution contenant l'itin�raire</param>
+/// <param name="s">solution contenant l'itinéraire</param>
 /// <param name="dep">dep < fin</param>
 /// <param name="fin">dep < fin</param>
 void decal_droite(solution& s, int dep, int fin)
@@ -419,7 +429,11 @@ void resoudre_probleme(probleme& p)
 	solution s;
 	init_solution_par_defaut(p, s);
 
-
+	repeat(i, 10)
+	{
+		appliquer_2OPT(p, s);
+		cout << "" << s.metres / 1000.0 << " km\n";
+	}
 
 	cout << "\n";
 }
@@ -427,7 +441,7 @@ void resoudre_probleme(probleme& p)
 int main()
 {
 
-	probleme probleme[] =
+	probleme problemes[] =
 	{
 		{
 			#include "Paris.txt"
@@ -440,13 +454,12 @@ int main()
 		},
 	};
 
-	int probleme_size = sizeof(probleme) / sizeof(probleme[0]);
+	int problemes_size = sizeof(problemes) / sizeof(problemes[0]);
 
-	repeat(i, probleme_size)
+	repeat(i, problemes_size)
 	{
-		resoudre_probleme(probleme[i]);
+		resoudre_probleme(problemes[i]);
 	}
-
 
 	return EXIT_SUCCESS;
 }
