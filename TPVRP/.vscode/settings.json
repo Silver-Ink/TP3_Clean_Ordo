@@ -1,0 +1,18 @@
+{
+    "workbench.colorCustomizations": {
+        "editorGroup.border": "#a4caf8",
+        "panel.border": "#a4caf8",
+        "sideBar.border": "#a4caf8",
+        "statusBar.background": "#74aef5",
+        "statusBar.border": "#74aef5",
+        "statusBar.debuggingBackground": "#f5bb74",
+        "statusBar.debuggingBorder": "#f5bb74",
+        "statusBar.debuggingForeground": "#15202b",
+        "statusBar.foreground": "#15202b",
+        "statusBarItem.hoverBackground": "#4492f2",
+        "statusBarItem.remoteBackground": "#74aef5",
+        "statusBarItem.remoteForeground": "#15202b",
+        "tab.activeBorder": "#a4caf8"
+    },
+    "peacock.color": "#74aef5"
+}
