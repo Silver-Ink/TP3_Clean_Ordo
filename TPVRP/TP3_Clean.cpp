@@ -13,7 +13,7 @@
 
 using namespace std;
 
-const int nMaxClient = 100;
+const int nMaxClient = 180;
 
 typedef struct probleme
 {
