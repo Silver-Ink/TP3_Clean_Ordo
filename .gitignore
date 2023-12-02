@@ -368,3 +368,6 @@ TP3_Clean.sln
 TP3_Clean.vcxproj
 TP3_Clean.vcxproj.filters
 TP3_Clean.vcxproj.user
+.vscode/c_cpp_properties.json
+.vscode/settings.json
+qa.exe

@@ -23,12 +23,15 @@ typedef struct probleme
 	int nb_ville;
 	int dist[nMaxClient][nMaxClient];
 	int qte[nMaxClient];
+	int capacite;
 } probleme;
 
 
 typedef struct solution
 {
 	int itineraire[nMaxClient + 2];
+	int m[nMaxClient];
+	int pere[nMaxClient];
 	int cout;
 } solution;
 
@@ -39,6 +42,7 @@ void lire_fichier(probleme& p, string fileName)
 
 	file >> p.depot;
 	file >> p.nb_ville;
+	file >> p.capacite;
 
 	for (int i = 0; i < p.nb_ville; i++)
 	{
@@ -302,6 +306,58 @@ void appliquer_Insertion(probleme& p, solution& s)
 void afficher_cout(solution& s)
 {
 	cout << "> " << s.cout / 1000.0 << " km\n";
+}
+
+void appliquer_split(probleme& p, solution& s)
+{
+	//Init
+
+	for (int i = 0; i < p.nb_ville; i++)
+	{
+		s.m[i] = INT_MAX;
+		s.pere[i] = 0;
+	}
+	s.m[0] = 0;
+	
+
+	// Split
+	for (int i = 0; i < p.nb_ville; i++)
+	{
+		int val, cost;
+		int j = i + 1;
+		do
+		{
+			if (j == i+1)
+			{
+				cost = p.dist[p.depot][s.itineraire[j]] + p.dist[s.itineraire[j]][p.depot];
+				val = p.qte[s.itineraire[j]];
+				
+				int current_cost = s.m[i] + cost;
+				if (current_cost < s.m[j])
+				{
+					s.m[j] = current_cost;
+					s.pere[j] = i;
+				}
+			}
+			else
+			{
+				cost -= p.dist[s.itineraire[j-1]][p.depot] 		   + 
+						p.dist[s.itineraire[j-1]][s.itineraire[j]] + 
+						p.dist[s.itineraire[j  ]][p.depot]			;
+				val  += p.qte [s.itineraire[j  ]];
+
+				int current_cost = s.m[i] + cost;
+				if (current_cost < s.m[j])
+				{
+					s.m[j] = current_cost;
+					s.pere[j] = i;
+				}
+			}
+
+		} while ((j < p.nb_ville) && (val + p.qte[s.itineraire[j]] <= p.capacite ));
+		
+	}
+	
 }
 
 int main()
