@@ -7,7 +7,6 @@
 // Nombre de ville
 .nb_ville = 20, 
 
-.capacite
 
 
 // Matrice des distance des villes
@@ -33,6 +32,6 @@
     {6358,	4275,	4922,	6539,	7230,	7492,	9572,	6999,	4353,	2695,	4670,	8395,	12198,	15703,	20098,	13855,	10025,	3757,	0,	    5639 },	
     {7358,	6364,	5921,	10465,	10685,	12609,	10572,	10265,	6759,	5692,	2912,	5501,	9304,	12809,	17203,	17429,	13600,	10358,	5639,	0    },
 }, 
-.qte = { 0 } // Quantité à deposer dans chaque ville
+.qte = { 0 }, // Quantité à deposer dans chaque ville
 
-.capacite = 100; // Capacite du camion
+.capacite = 100 // Capacite du camion
