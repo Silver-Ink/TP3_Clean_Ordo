@@ -1,8 +1,11 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <cstdlib>
 
 #define repeat(_varName, _nbTime) for(int _varName = 0, nb_time = (int)(_nbTime); _varName < nb_time; _varName++)
+#define unused(x) (void)(x)
+
 #pragma warning(push)
 // Faux positif 
 #pragma warning(disable:6385)
@@ -13,10 +16,11 @@
 
 using namespace std;
 
-const int nMaxClient = 100;
+const int nMaxClient = 180;
 
 typedef struct probleme
 {
+	string nom;
 	// Indice de ville du d�pot (souvent 0)
 	int depot;
 	// Nombre de ville, d�pot compris
@@ -30,80 +34,66 @@ typedef struct probleme
 typedef struct solution
 {
 	int itineraire[nMaxClient + 2];
+	union
+	{
+		// 2 noms différent pour la même variables
+		int cout;
+		int metres;
+	};
 	int m[nMaxClient];
 	int pere[nMaxClient];
-	int cout;
 } solution;
 
-void lire_fichier(probleme& p, string fileName)
-{
-	string word;
-	ifstream file(fileName.c_str());
-
-	file >> p.depot;
-	file >> p.nb_ville;
-	file >> p.capacite;
-
-	for (int i = 0; i < p.nb_ville; i++)
-	{
-		for (int j = 0; j < p.nb_ville; j++)
-		{
-			file >> p.dist[i][j];
-		}
-	}
-
-	string line;
-	getline(file, line); // le commentaire
-
-	repeat(i, p.nb_ville)
-	{
-		int useless;
-		file >> useless;
-		file >> p.qte[i];
-	}
-
-	return;
-}
-
+#pragma region Aleatoire
 int rand_uni(int min, int max)
 {
 	return min + rand() % (max - min + 1);
 }
 
+float rand_float(float mini, float maxi)
+{
+	return (rand() / (float)RAND_MAX) * (maxi - mini) + mini;
+}
+#pragma endregion
+
+#pragma region Heuristiques
 void plus_proche_voisin(probleme& p, solution& s)
 {
+	s.cout = 0;
 	int i;
-	int position = p.depot;
 
-	int vill_rest[nMaxClient];
-	// On exclus le d�pot qui est compris dans le nb_ville
-	int nb_vill_rest = p.nb_ville - 1;
+	int ville_rest[nMaxClient];
+	// On exclus le dépot qui est compris dans le nb_ville
+	int nb_ville_rest = p.nb_ville - 1;
 
 	for (i = 1; i < p.nb_ville; i++)
 	{
-		vill_rest[i - 1] = i;
+		ville_rest[i - 1] = i;
 	}
 
 	s.itineraire[0] = p.depot;
 	for (i = 1; i < p.nb_ville; i++)
 	{
-		int dist_min = 999999;
+		int dist_min = 99999999;
 		int idx_ville_min = 0;
-		for (int j = 0; j < nb_vill_rest; j++)
+		for (int j = 0; j < nb_ville_rest; j++)
 		{
-			int dist = p.dist[s.itineraire[i - 1]][vill_rest[j]];
+			int dist = p.dist[s.itineraire[i - 1]][ville_rest[j]];
 			if (dist_min > dist && dist != 0)
 			{
 				dist_min = dist;
 				idx_ville_min = j;
 			}
 		}
-		s.itineraire[i] = vill_rest[idx_ville_min];
+		s.itineraire[i] = ville_rest[idx_ville_min];
 
-		nb_vill_rest--;
-		vill_rest[idx_ville_min] = vill_rest[nb_vill_rest];
+		nb_ville_rest--;
+		ville_rest[idx_ville_min] = ville_rest[nb_ville_rest];
+		s.cout += p.dist[s.itineraire[i]][s.itineraire[i - 1]];
+
 	}
 	s.itineraire[i] = p.depot;
+	s.cout += p.dist[s.itineraire[i]][s.itineraire[i - 1]];
 }
 
 typedef struct ville_dist
@@ -135,18 +125,17 @@ void plus_proche_voisin_randomised(probleme& p, solution& s)
 {
 	s.cout = 0;
 	int i;
-	int position = p.depot;
 
 	int nb_ville_proche = 0;
 	ville_dist list_proche[taille_liste_plus_proche];
 
-	int vill_rest[nMaxClient];
-	// On exclus le d�pot qui est compris dans le nb_ville
-	int nb_vill_rest = p.nb_ville - 1;
+	int ville_rest[nMaxClient];
+	// On exclus le dépot qui est compris dans le nb_ville
+	int nb_ville_rest = p.nb_ville - 1;
 
 	for (i = 1; i < p.nb_ville; i++)
 	{
-		vill_rest[i - 1] = i;
+		ville_rest[i - 1] = i;
 	}
 
 	s.itineraire[0] = p.depot;
@@ -154,20 +143,20 @@ void plus_proche_voisin_randomised(probleme& p, solution& s)
 	{
 		for (int k = 0; k < taille_liste_plus_proche; k++)
 		{
-			list_proche[k].dist = 99999;
+			list_proche[k].dist = 99999999;
 			list_proche[k].ville = -1;
 			list_proche[k].idx_rest = -1;
 		}
 		nb_ville_proche = 0;
 
-		for (int j = 0; j < nb_vill_rest; j++)
+		for (int j = 0; j < nb_ville_rest; j++)
 		{
-			int dist = p.dist[s.itineraire[i - 1]][vill_rest[j]];
+			int dist = p.dist[s.itineraire[i - 1]][ville_rest[j]];
 			if (dist != 0)
 			{
 				ville_dist current;
 				current.dist = dist;
-				current.ville = vill_rest[j];
+				current.ville = ville_rest[j];
 				current.idx_rest = j;
 				inserer_trie(list_proche, current);
 				nb_ville_proche++;
@@ -182,15 +171,75 @@ void plus_proche_voisin_randomised(probleme& p, solution& s)
 		}
 		s.itineraire[i] = list_proche[j].ville;
 		s.cout += p.dist[s.itineraire[i]][s.itineraire[i - 1]];
+
 		//cout << s.itineraire[i - 1] << ' ' << s.itineraire[i] << ':' << p.dist[s.itineraire[i]][s.itineraire[i - 1]] << '\n';
 
-		nb_vill_rest--;
-		vill_rest[list_proche[j].idx_rest] = vill_rest[nb_vill_rest];
+		nb_ville_rest--;
+		ville_rest[list_proche[j].idx_rest] = ville_rest[nb_ville_rest];
 	}
 	s.itineraire[i] = p.depot;
 	s.cout += p.dist[s.itineraire[i]][s.itineraire[i - 1]];
-
 }
+
+void mega_heuristique_de_la_mort_qui_tue(probleme& p, solution& s)
+{
+	s.cout = 0;
+	int i;
+
+	int ville_rest[nMaxClient];
+	// On exclus le dépot qui est compris dans le nb_ville
+	int nb_ville_rest = p.nb_ville - 1;
+
+	for (i = 1; i < p.nb_ville; i++)
+	{
+		ville_rest[i - 1] = i;
+	}
+
+	s.itineraire[0] = p.depot;
+	for (i = 1; i < p.nb_ville; i++)
+	{
+		float rng = rand_float(0.01f, 0.5);
+
+		float dist_min = 1e20f;
+		int idx_ville_min = 0;
+		for (int j = 0; j < nb_ville_rest; j++)
+		{
+			float d1 = p.dist[s.itineraire[i - 1]][ville_rest[j]];
+			float eloignement_depot = (float)(p.dist[p.depot][ville_rest[j]] - p.dist[s.itineraire[i - 1]][p.depot]);
+			float dist = d1 - rng * eloignement_depot;
+
+			if (dist_min > dist)
+			{
+				dist_min = dist;
+				idx_ville_min = j;
+			}
+		}
+		s.itineraire[i] = ville_rest[idx_ville_min];
+
+		nb_ville_rest--;
+		ville_rest[idx_ville_min] = ville_rest[nb_ville_rest];
+		s.cout += p.dist[s.itineraire[i]][s.itineraire[i - 1]];
+
+	}
+	s.itineraire[i] = p.depot;
+	s.cout += p.dist[s.itineraire[i]][s.itineraire[i - 1]];
+}
+
+void meilleur_heuristique(probleme& p, solution& s, void (*heuritique)(probleme& p, solution& s), int nbTentative = 2000)
+{
+	solution meilleur = s;
+	meilleur.cout = 999999999;
+	repeat(i, nbTentative)
+	{
+		heuritique(p, s);
+		if (s.cout < meilleur.cout)
+		{
+			meilleur = s;
+		}
+	}
+	s = meilleur;
+}
+#pragma endregion
 
 
 void afficher_itineraire(probleme& p, solution& s)
@@ -213,12 +262,12 @@ void appliquer_2OPT(probleme& p, solution& s)
 
 	for (i = 1; i < p.nb_ville; i++)
 	{
-		for (j = i + 2; j < p.nb_ville; j++)
+		for (j = i+2; j < p.nb_ville; j++)
 		{
-			delta = p.dist[s.itineraire[i]][s.itineraire[j]]
-				+ p.dist[s.itineraire[i + 1]][s.itineraire[j + 1]]
-				- p.dist[s.itineraire[i]][s.itineraire[i + 1]]
-				- p.dist[s.itineraire[j]][s.itineraire[j + 1]];
+			delta =   p.dist[ s.itineraire[i]   ][ s.itineraire[j]   ]
+					+ p.dist[ s.itineraire[i+1] ][ s.itineraire[j+1] ] 
+					- p.dist[ s.itineraire[i]   ][ s.itineraire[i+1] ] 
+					- p.dist[ s.itineraire[j]   ][ s.itineraire[j+1] ] ;
 			if (delta < 0)
 			{
 				while (i < j)
@@ -278,15 +327,15 @@ void appliquer_Insertion(probleme& p, solution& s)
 	{
 		for (int j = 0; j < p.nb_ville - 1; j++)
 		{
-			if (i != j && i - 1 != j)
+			if (i != j && i-1 != j)
 			{
-
-				delta = p.dist[s.itineraire[i]][s.itineraire[j]]
-					+ p.dist[s.itineraire[i - 1]][s.itineraire[i + 1]]
-					+ p.dist[s.itineraire[i]][s.itineraire[j + 1]]
-					- p.dist[s.itineraire[i]][s.itineraire[i - 1]]
-					- p.dist[s.itineraire[i]][s.itineraire[i + 1]]
-					- p.dist[s.itineraire[j]][s.itineraire[j + 1]];
+				
+				delta =   p.dist[ s.itineraire[i]   ][ s.itineraire[j]   ]
+					    + p.dist[ s.itineraire[i-1] ][ s.itineraire[i+1] ] 
+					    + p.dist[ s.itineraire[i]   ][ s.itineraire[j+1] ] 
+					    - p.dist[ s.itineraire[i]   ][ s.itineraire[i-1] ] 
+					    - p.dist[ s.itineraire[i]   ][ s.itineraire[i+1] ] 
+					    - p.dist[ s.itineraire[j]   ][ s.itineraire[j+1] ] ;
 				if (delta < 0)
 				{
 					if (i < j)
@@ -308,19 +357,18 @@ void afficher_cout(solution& s)
 	cout << "> " << s.cout / 1000.0 << " km\n";
 }
 
-void appliquer_split(probleme& p, solution& s)
+void init_split(probleme& p, solution& s)
 {
-	//Init
-
 	for (int i = 0; i < p.nb_ville; i++)
 	{
 		s.m[i] = INT_MAX;
 		s.pere[i] = 0;
 	}
 	s.m[0] = 0;
-	
+}
 
-	// Split
+void appliquer_split(probleme& p, solution& s)
+{
 	for (int i = 0; i < p.nb_ville; i++)
 	{
 		int val, cost;
@@ -355,30 +403,75 @@ void appliquer_split(probleme& p, solution& s)
 			}
 
 		} while ((j < p.nb_ville) && (val + p.qte[s.itineraire[j]] <= p.capacite ));
-		
 	}
-	
+}
+
+
+void init_solution_par_defaut(probleme& p, solution& s)
+{
+	solution s_randomized;
+	solution s_plus_proche;
+	solution s_mega_heuristique;
+
+	// Déterministe, l'appeler 1 fois ou plusieurs fois donne le même résultat
+	// meilleur_heuristique(p, s_plus_proche, plus_proche_voisin);
+	plus_proche_voisin(p, s_plus_proche);
+
+	meilleur_heuristique(p, s_randomized, plus_proche_voisin_randomised);
+	meilleur_heuristique(p, s_mega_heuristique, mega_heuristique_de_la_mort_qui_tue);
+
+	s = (s_randomized.cout < s_plus_proche.cout) ?
+		(s_randomized.cout < s_mega_heuristique.cout ? s_randomized : s_mega_heuristique)
+		: (s_plus_proche.cout < s_mega_heuristique.cout ? s_plus_proche : s_mega_heuristique);
+
+	cout << "Probleme de la ville de " << p.nom << "\n";
+
+	cout << "   heuristique par defaut : \n";
+
+	cout << "      > plus proche " << s_plus_proche     .metres / 1000.0 << " km\n";
+	cout << "      > randomized  " << s_randomized      .metres / 1000.0 << " km\n";
+	cout << "      > eloignement " << s_mega_heuristique.metres / 1000.0 << " km\n";
+	//afficher_itineraire(p, s_plus_proche);
+	//afficher_itineraire(p, s_randomized);
+	//afficher_itineraire(p, s_mega_heuristique);
+}
+
+
+void resoudre_probleme(probleme& p)
+{
+	solution s;
+	init_solution_par_defaut(p, s);
+
+
+
+	cout << "\n";
 }
 
 int main()
 {
-	probleme p;
-	solution s;
 
-	lire_fichier(p, "Paris.txt");
-
-	//plus_proche_voisin(p, s);
-	for (int i = 0; i < 1; i++)
+	probleme probleme[] =
 	{
-		plus_proche_voisin_randomised(p, s);
-		afficher_itineraire(p, s);
-		afficher_cout(s);
+		{
+			#include "Paris.txt"
+		},
+		{
+			#include "Puy2Dome.txt"
+		},
+		{
+			#include "Allier.txt"
+		},
+	};
 
-		appliquer_2OPT(p, s);
-		afficher_itineraire(p, s);
-		afficher_cout(s);
+	int probleme_size = sizeof(probleme) / sizeof(probleme[0]);
+
+	repeat(i, probleme_size)
+	{
+		resoudre_probleme(probleme[i]);
 	}
-	return 0;
+
+
+	return EXIT_SUCCESS;
 }
 
 

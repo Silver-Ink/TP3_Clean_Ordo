@@ -371,3 +371,4 @@ TP3_Clean.vcxproj.user
 .vscode/c_cpp_properties.json
 .vscode/settings.json
 qa.exe
+VRP.exe
