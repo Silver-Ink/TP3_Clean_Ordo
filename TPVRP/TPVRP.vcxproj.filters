@@ -16,8 +16,8 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="Allier.txt" />
-    <Text Include="Paris.txt" />
     <Text Include="Puy2Dome.txt" />
+    <Text Include="Paris.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TP3_Clean.cpp">
