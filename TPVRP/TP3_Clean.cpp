@@ -232,7 +232,22 @@ void mega_heuristique_de_la_mort_qui_tue(probleme& p, solution& s)
 	s.cout += p.dist[s.itineraire[i]][s.itineraire[i - 1]];
 }
 
-void meilleur_heuristique(probleme& p, solution& s, void (*heuritique)(probleme& p, solution& s), int nbTentative = 2000)
+void mauvaise_heuristique_rng(probleme& p, solution& s)
+{
+	s.cout = 0;
+	int i;
+
+	s.itineraire[0] = p.depot;
+	for (i = 1; i < p.nb_ville; i++)
+	{
+		s.itineraire[i] = i;
+		s.cout += p.dist[s.itineraire[i]][s.itineraire[i - 1]];
+	}
+	s.itineraire[i] = p.depot;
+	s.cout += p.dist[s.itineraire[i]][s.itineraire[i - 1]];
+}
+
+void meilleur_heuristique(probleme& p, solution& s, void (*heuritique)(probleme& p, solution& s), int nbTentative = 1000)
 {
 	solution meilleur = s;
 	meilleur.cout = 999999999;
@@ -248,13 +263,27 @@ void meilleur_heuristique(probleme& p, solution& s, void (*heuritique)(probleme&
 }
 #pragma endregion
 
+const char* funny_string[] =
+{
+	", puis aller a ",
+	", ensuite rendez vous a ",
+	", continuer vers ",
+	", puis ",
+	", allez sur ",
+	", se diriger vers ",
+	", aller a ",
+	", se rendre a ",
+};
 
 void afficher_itineraire(probleme& p, solution& s)
 {
+	cout << "\nitineraire :\n";
+	cout << "Commencer au depot ";
 	cout << s.itineraire[0];
 	for (int i = 1; i <= p.nb_ville; i++)
 	{
 		cout << " -> " << s.itineraire[i];
+		//cout << funny_string[rand()%(sizeof(funny_string)/sizeof(const char*))] << s.itineraire[i];
 	}
 	cout << "\n";
 }
@@ -263,29 +292,30 @@ void afficher_itineraire(probleme& p, solution& s)
 
 bool appliquer_2OPT(probleme& p, solution& s)
 {
-	int delta;
-	int i;
-	int j;
 	bool trouver_meilleur = false;
 
-	for (i = 1; i < p.nb_ville; i++)
+	for (int i = 1; i < p.nb_ville - 1; i++)
 	{
-		for (j = i+2; j < p.nb_ville; j++)
+		for (int j = i + 2; j < p.nb_ville; j++)
 		{
-			delta =   p.dist[ s.itineraire[i]   ][ s.itineraire[j]   ]
-					+ p.dist[ s.itineraire[i+1] ][ s.itineraire[j+1] ] 
-					- p.dist[ s.itineraire[i]   ][ s.itineraire[i+1] ] 
-					- p.dist[ s.itineraire[j]   ][ s.itineraire[j+1] ] ;
+			int delta = p.dist[s.itineraire[i]][s.itineraire[j]] +
+				p.dist[s.itineraire[i + 1]][s.itineraire[j + 1]] -
+				p.dist[s.itineraire[i]][s.itineraire[i + 1]] -
+				p.dist[s.itineraire[j]][s.itineraire[j + 1]];
+
 			if (delta < 0)
 			{
 				trouver_meilleur = true;
-				while (i < j)
+
+				// Inverser le segment entre i et j
+				for (int k = 0; k < (j - i) / 2; k++)
 				{
-					int tmp = s.itineraire[i];
-					s.itineraire[i] = s.itineraire[j];
-					s.itineraire[j] = tmp;
-					i++; j--;
+					int tmp = s.itineraire[i + 1 + k];
+					s.itineraire[i + 1 + k] = s.itineraire[j - k];
+					s.itineraire[j - k] = tmp;
 				}
+
+				s.cout += delta;
 			}
 		}
 	}
@@ -293,18 +323,19 @@ bool appliquer_2OPT(probleme& p, solution& s)
 }
 
 
+
 /// <summary>
-/// Décale les éléments de l'itinéraire vers la droite en ramenant le dernier indice au début.
-/// Bornes dep et fin non incluses
+/// Décale les éléments de l'itinéraire vers la gauche en ramenant le dernier indice au début.
+/// Bornes debut et fin non incluse
 /// </summary>
 /// <param name="s">solution contenant l'itinéraire</param>
 /// <param name="dep">fin < dep</param>
 /// <param name="fin">fin < dep</param>
-void decal_gauche(solution& s, int dep, int fin)
+void decal_gauche(solution& s, int debut, int fin)
 {
-	int cur = fin + 1;
-	int buffer = s.itineraire[cur];
-	while (cur + 1 < dep)
+	int cur = debut;
+	int buffer = s.itineraire[debut];
+	while (cur + 1 <= fin)
 	{
 		s.itineraire[cur] = s.itineraire[cur + 1];
 		cur++;
@@ -313,53 +344,69 @@ void decal_gauche(solution& s, int dep, int fin)
 }
 
 /// <summary>
-/// Décale les éléments de l'itinéraire vers la gauche en ramenant le dernier indice au début.
-/// Bornes dep et fin non incluses
+/// Décale les éléments de l'itinéraire vers la droite en ramenant le dernier indice au début.
+/// Bornes debut et fin non incluse
 /// </summary>
 /// <param name="s">solution contenant l'itinéraire</param>
 /// <param name="dep">dep < fin</param>
 /// <param name="fin">dep < fin</param>
-void decal_droite(solution& s, int dep, int fin)
+void decal_droite(solution& s, int debut, int fin)
 {
-	int cur = fin - 1;
-	int buffer = s.itineraire[cur];
-	while (cur - 1 > dep)
+	int cur = fin;
+	int buffer = s.itineraire[fin];
+	while (cur - 1 >= debut)
 	{
 		s.itineraire[cur] = s.itineraire[cur - 1];
 		cur--;
 	}
 	s.itineraire[cur] = buffer;
 }
-void appliquer_Insertion(probleme& p, solution& s)
+
+
+int appliquer_insertion(probleme& p, solution& s)
 {
+#define d(x,y) p.dist[s.itineraire[x]][s.itineraire[y]]
+
+	int nbInsert = 0;
 	int delta;
-	for (int i = 0; i < p.nb_ville - 1; i++)
+	for(int i = 1; i < p.nb_ville - 1; i++)
 	{
-		for (int j = 0; j < p.nb_ville - 1; j++)
+		int delta_moins = 
+			- d(i - 1, i)
+			- d(i, i + 1)
+			+ d(i - 1, i + 1);
+
+		for (int j = 1; j < p.nb_ville - 1; j++)
 		{
-			if (i != j && i-1 != j)
+			if (i == j || i == j + 1) { continue; }
+
+			int delta_plus = 
+				- d(j, j + 1)
+				+ d(j, i)
+				+ d(i, j+1);
+
+			int delta = delta_moins + delta_plus;
+
+			if (delta < 0)
 			{
-				
-				delta =   p.dist[ s.itineraire[i]   ][ s.itineraire[j]   ]
-					    + p.dist[ s.itineraire[i-1] ][ s.itineraire[i+1] ] 
-					    + p.dist[ s.itineraire[i]   ][ s.itineraire[j+1] ] 
-					    - p.dist[ s.itineraire[i]   ][ s.itineraire[i-1] ] 
-					    - p.dist[ s.itineraire[i]   ][ s.itineraire[i+1] ] 
-					    - p.dist[ s.itineraire[j]   ][ s.itineraire[j+1] ] ;
-				if (delta < 0)
+				s.cout += delta;
+
+
+				if (i < j)
 				{
-					if (i < j)
-					{
-						decal_gauche(s, j, i);
-					}
-					else
-					{
-						decal_droite(s, j, i);
-					}
+					decal_gauche(s, i, j);
 				}
+				else
+				{
+					decal_droite(s, j+1, i);
+				}
+				nbInsert++;
+				break;
 			}
 		}
 	}
+	return nbInsert;
+#undef d
 }
 
 void afficher_cout(solution& s)
@@ -379,7 +426,14 @@ void init_split(probleme& p, solution& s)
 
 void appliquer_split(probleme& p, solution& s)
 {
-	for (int i = 0; i < p.nb_ville; i++)
+	repeat(i, nMaxClient)
+	{
+		s.m[i] = 99999999;
+		s.pere[i] = 0;
+	}
+	s.m[0] = 0;
+
+	repeat(i, p.nb_ville)
 	{
 		int val, cost;
 		int j = i + 1;
@@ -387,7 +441,8 @@ void appliquer_split(probleme& p, solution& s)
 		{
 			if (j == i+1)
 			{
-				cost = p.dist[p.depot][s.itineraire[j]] + p.dist[s.itineraire[j]][p.depot];
+				//cost = p.dist[p.depot][s.itineraire[j]] + p.dist[s.itineraire[j]][p.depot];
+				cost = p.dist[p.depot][s.itineraire[j]] * 2;
 				val = p.qte[s.itineraire[j]];
 				
 				int current_cost = s.m[i] + cost;
@@ -411,13 +466,14 @@ void appliquer_split(probleme& p, solution& s)
 					s.pere[j] = i;
 				}
 			}
+			j++;
 
 		} while ((j < p.nb_ville) && (val + p.qte[s.itineraire[j]] <= p.capacite ));
 	}
 }
 
 
-void init_solution_par_defaut(probleme& p, solution& s)
+void init_solution_par_defaut(probleme& p, solution& s, bool prendre_mauvaise_soluce = false)
 {
 	solution s_randomized;
 	solution s_plus_proche;
@@ -434,16 +490,21 @@ void init_solution_par_defaut(probleme& p, solution& s)
 		(s_randomized.cout < s_mega_heuristique.cout ? s_randomized : s_mega_heuristique)
 		: (s_plus_proche.cout < s_mega_heuristique.cout ? s_plus_proche : s_mega_heuristique);
 
-	cout << "Probleme de la ville de " << p.nom << "\n";
+	cout << "================= Probleme de la ville de " << p.nom << " =======\n";
 
-	cout << "   heuristique par defaut : \n";
+	cout << "heuristique par defaut : \n";
 
-	cout << "      > plus proche " << s_plus_proche     .metres / 1000.0 << " km\n";
-	cout << "      > randomized  " << s_randomized      .metres / 1000.0 << " km\n";
-	cout << "      > eloignement " << s_mega_heuristique.metres / 1000.0 << " km\n";
-	//afficher_itineraire(p, s_plus_proche);
-	//afficher_itineraire(p, s_randomized);
-	//afficher_itineraire(p, s_mega_heuristique);
+	cout << "   > plus proche " << s_plus_proche     .metres / 1000.0 << " km\n";
+	cout << "   > randomized  " << s_randomized      .metres / 1000.0 << " km\n";
+	cout << "   > eloignement " << s_mega_heuristique.metres / 1000.0 << " km\n";
+
+	if(prendre_mauvaise_soluce)
+	{
+		solution s_mauvaise;
+		mauvaise_heuristique_rng(p, s_mauvaise);
+		cout << "   > mauvaise rng " << s_mauvaise.metres / 1000.0 << " km\n";
+		s = s_mauvaise;
+	}
 }
 
 
@@ -451,14 +512,38 @@ void resoudre_probleme(probleme& p)
 {
 	solution s;
 	init_solution_par_defaut(p, s);
+	cout << "\nrecherche de la plus courte tournee...\n";
 
-	repeat(i, 10)
+	bool continuer;
+	do
 	{
-		appliquer_2OPT(p, s);
-		cout << "" << s.metres / 1000.0 << " km\n";
-	}
+		int nbInsertion = 0;
+		int nb2OP = 0;
+		continuer = false;
+		//appliquer_split(p, s);
 
-	cout << "\n";
+		//repeat(j, 100)
+
+		int curInsert;
+		while (curInsert = appliquer_insertion(p, s))
+		{
+			nbInsertion += curInsert;
+			continuer = true;
+		}
+
+		if(appliquer_2OPT(p, s))
+		{
+			continuer = true;
+			nb2OP++;
+		}
+
+		cout << "> " << s.metres / 1000.0 << " km apres " << nbInsertion << " insertions et " << nb2OP << " 2OPT \n";
+
+	} while (continuer);
+
+	afficher_itineraire(p, s);
+
+	cout << "\n\n";
 }
 
 int main()
@@ -483,6 +568,8 @@ int main()
 	{
 		resoudre_probleme(problemes[i]);
 	}
+
+	cout << " C'est la fin, et les algo tiennent bien sur un timbre poste" << endl;
 
 	return EXIT_SUCCESS;
 }
