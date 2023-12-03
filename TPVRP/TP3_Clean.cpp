@@ -282,8 +282,8 @@ void afficher_itineraire(probleme& p, solution& s)
 	cout << s.itineraire[0];
 	for (int i = 1; i <= p.nb_ville; i++)
 	{
-		cout << " -> " << s.itineraire[i];
-		//cout << funny_string[rand()%(sizeof(funny_string)/sizeof(const char*))] << s.itineraire[i];
+		//cout << " -> " << s.itineraire[i];
+		cout << funny_string[rand()%(sizeof(funny_string)/sizeof(const char*))] << s.itineraire[i];
 	}
 	cout << "\n";
 }
