@@ -46,7 +46,7 @@ typedef struct solution
 		int cout;
 		int metres;
 	};
-	int m[nMaxClient];
+	int mini[nMaxClient];
 	int pere[nMaxClient];
 } solution;
 #pragma endregion
@@ -273,6 +273,11 @@ const char* funny_string[] =
 	", se diriger vers ",
 	", aller a ",
 	", se rendre a ",
+	", direction ",
+	", continuer tout droit jusqu'a ",
+	", depeche toi d'aller a ",
+	", arreter-vous a ",
+	". La ! Stop ! "
 };
 
 void afficher_itineraire(probleme& p, solution& s)
@@ -286,6 +291,28 @@ void afficher_itineraire(probleme& p, solution& s)
 		cout << funny_string[rand()%(sizeof(funny_string)/sizeof(const char*))] << s.itineraire[i];
 	}
 	cout << "\n";
+}
+/// @brief Affiche les tournée dans l'ordre inverse, mais leur contenu est dans l'ordre
+void afficher_tournee(probleme& p, solution& s)
+{
+	int id_deb = p.nb_ville - 1;
+	int id_pos;
+	int id_tourne = 0;
+
+	while (id_deb != 0)
+	{
+		cout << "Tournee n." << id_tourne << " = [ " << p.depot << ", ";
+		id_pos = id_deb;
+		id_deb = s.pere[id_pos];
+		
+		for (int i = id_deb + 1; i <= id_pos; i++)
+		{
+			printf_s("%3d,", s.itineraire[i]);
+		}
+
+		cout << "  " << p.depot << " ]\n";
+		id_tourne++;
+	}
 }
 
 
@@ -418,24 +445,18 @@ void init_split(probleme& p, solution& s)
 {
 	for (int i = 0; i < p.nb_ville; i++)
 	{
-		s.m[i] = INT_MAX;
+		s.mini[i] = 99999999;
 		s.pere[i] = 0;
 	}
-	s.m[0] = 0;
+	s.mini[0] = 0;
 }
 
 void appliquer_split(probleme& p, solution& s)
 {
-	repeat(i, nMaxClient)
-	{
-		s.m[i] = 99999999;
-		s.pere[i] = 0;
-	}
-	s.m[0] = 0;
-
+	init_split(p, s);
 	repeat(i, p.nb_ville)
 	{
-		int val, cost;
+		int volume, cost;
 		int j = i + 1;
 		do
 		{
@@ -443,32 +464,33 @@ void appliquer_split(probleme& p, solution& s)
 			{
 				//cost = p.dist[p.depot][s.itineraire[j]] + p.dist[s.itineraire[j]][p.depot];
 				cost = p.dist[p.depot][s.itineraire[j]] * 2;
-				val = p.qte[s.itineraire[j]];
+				volume = p.qte[s.itineraire[j]];
 				
-				int current_cost = s.m[i] + cost;
-				if (current_cost < s.m[j])
+				int current_cost = s.mini[i] + cost;
+				if (current_cost < s.mini[j])
 				{
-					s.m[j] = current_cost;
+					s.mini[j] = current_cost;
 					s.pere[j] = i;
 				}
 			}
 			else
-			{
-				cost -= p.dist[s.itineraire[j-1]][p.depot] 		   + 
+			{ 
+				cost =  cost 									   -
+						p.dist[s.itineraire[j-1]][p.depot] 		   + 
 						p.dist[s.itineraire[j-1]][s.itineraire[j]] + 
 						p.dist[s.itineraire[j  ]][p.depot]			;
-				val  += p.qte [s.itineraire[j  ]];
+				volume  += p.qte [s.itineraire[j  ]];
 
-				int current_cost = s.m[i] + cost;
-				if (current_cost < s.m[j])
+				int current_cost = s.mini[i] + cost;
+				if (current_cost < s.mini[j])
 				{
-					s.m[j] = current_cost;
+					s.mini[j] = current_cost;
 					s.pere[j] = i;
 				}
 			}
 			j++;
 
-		} while ((j < p.nb_ville) && (val + p.qte[s.itineraire[j]] <= p.capacite ));
+		} while ((j < p.nb_ville) && (volume + p.qte[s.itineraire[j]] <= p.capacite ));
 	}
 }
 
@@ -542,6 +564,10 @@ void resoudre_probleme(probleme& p)
 	} while (continuer);
 
 	afficher_itineraire(p, s);
+
+	appliquer_split(p, s);
+
+	afficher_tournee(p, s);
 
 	cout << "\n\n";
 }
