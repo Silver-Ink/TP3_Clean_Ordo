@@ -277,7 +277,9 @@ const char* funny_string[] =
 	", continuer tout droit jusqu'a ",
 	", depeche toi d'aller a ",
 	", arreter-vous a ",
-	". La ! Stop ! "
+	". La ! Stop ! ",
+	". Rush vers ",
+	", passez par ",
 };
 
 void afficher_itineraire(probleme& p, solution& s)
@@ -290,7 +292,7 @@ void afficher_itineraire(probleme& p, solution& s)
 		//cout << " -> " << s.itineraire[i];
 		cout << funny_string[rand()%(sizeof(funny_string)/sizeof(const char*))] << s.itineraire[i];
 	}
-	cout << "\n";
+	cout << "\n\n";
 }
 /// @brief Affiche les tournée dans l'ordre inverse, mais leur contenu est dans l'ordre
 void afficher_tournee(probleme& p, solution& s)
@@ -399,8 +401,8 @@ int appliquer_insertion(probleme& p, solution& s)
 	for(int i = 1; i < p.nb_ville - 1; i++)
 	{
 		int delta_moins = 
-			- d(i - 1, i)
-			- d(i, i + 1)
+			- d(i - 1, i    )
+			- d(i    , i + 1)
 			+ d(i - 1, i + 1);
 
 		for (int j = 1; j < p.nb_ville - 1; j++)
@@ -409,8 +411,8 @@ int appliquer_insertion(probleme& p, solution& s)
 
 			int delta_plus = 
 				- d(j, j + 1)
-				+ d(j, i)
-				+ d(i, j+1);
+				+ d(j, i    )
+				+ d(i, j + 1);
 
 			int delta = delta_moins + delta_plus;
 
@@ -458,36 +460,28 @@ void appliquer_split(probleme& p, solution& s)
 	{
 		int volume, cost;
 		int j = i + 1;
+
+		cost = p.dist[p.depot][s.itineraire[j]] * 2;
+		volume = p.qte[s.itineraire[j]];
+		goto middle;
+
 		do
 		{
-			if (j == i+1)
-			{
-				//cost = p.dist[p.depot][s.itineraire[j]] + p.dist[s.itineraire[j]][p.depot];
-				cost = p.dist[p.depot][s.itineraire[j]] * 2;
-				volume = p.qte[s.itineraire[j]];
-				
-				int current_cost = s.mini[i] + cost;
-				if (current_cost < s.mini[j])
-				{
-					s.mini[j] = current_cost;
-					s.pere[j] = i;
-				}
-			}
-			else
-			{ 
-				cost =  cost 									   -
-						p.dist[s.itineraire[j-1]][p.depot] 		   + 
-						p.dist[s.itineraire[j-1]][s.itineraire[j]] + 
-						p.dist[s.itineraire[j  ]][p.depot]			;
-				volume  += p.qte [s.itineraire[j  ]];
+			cost = cost -
+				p.dist[s.itineraire[j - 1]][p.depot] +
+				p.dist[s.itineraire[j - 1]][s.itineraire[j]] +
+				p.dist[s.itineraire[j]][p.depot];
+			volume += p.qte[s.itineraire[j]];
 
-				int current_cost = s.mini[i] + cost;
-				if (current_cost < s.mini[j])
-				{
-					s.mini[j] = current_cost;
-					s.pere[j] = i;
-				}
+			middle:
+
+			int current_cost = s.mini[i] + cost;
+			if (current_cost < s.mini[j])
+			{
+				s.mini[j] = current_cost;
+				s.pere[j] = i;
 			}
+
 			j++;
 
 		} while ((j < p.nb_ville) && (volume + p.qte[s.itineraire[j]] <= p.capacite ));
@@ -595,7 +589,7 @@ int main()
 		resoudre_probleme(problemes[i]);
 	}
 
-	cout << " C'est la fin, et les algo tiennent bien sur un timbre poste" << endl;
+	cout << " C'est la fin, et les algos tiennent bien sur un timbre poste (avec le texte écrit en taille 0.1)" << endl;
 
 	return EXIT_SUCCESS;
 }
