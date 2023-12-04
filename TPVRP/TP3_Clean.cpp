@@ -300,21 +300,28 @@ void afficher_tournee(probleme& p, solution& s)
 	int id_deb = p.nb_ville - 1;
 	int id_pos;
 	int id_tourne = 0;
+	int metre_total = 0;
 
 	while (id_deb != 0)
 	{
+
 		cout << "Tournee n." << id_tourne << " = [ " << p.depot << ", ";
 		id_pos = id_deb;
 		id_deb = s.pere[id_pos];
-		
+		int metre = p.dist[0][s.itineraire[id_deb]];
+
 		for (int i = id_deb + 1; i <= id_pos; i++)
 		{
+			metre += p.dist[s.itineraire[i - 1]][s.itineraire[i]];
 			printf_s("%3d,", s.itineraire[i]);
 		}
 
-		cout << "  " << p.depot << " ]\n";
+		metre_total += metre;
+		cout << "  " << p.depot << " ], soit " << metre / 1000.0 << " km\n";
 		id_tourne++;
 	}
+	cout << "distance total : " << metre_total / 1000.0 << " km\n";
+
 }
 
 

@@ -354,4 +354,4 @@
 	203 
 }, // Quantité à deposer dans chaque ville
 
-.capacite = 100 // Capacite du camion
+.capacite = 1220 // Capacite du camion
